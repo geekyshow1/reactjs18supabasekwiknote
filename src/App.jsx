@@ -1,16 +1,59 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import KwikNote from './components/KwikNote'
+import { supabase } from './supbaseClient'
 
 function App() {
   const [notes, setNotes] = useState([])
-  const addNote = () => {
-    setNotes([...notes, { id: Date.now(), text: 'Click Edit to write your note...' }])
+
+  useEffect(() => {
+    fetchNotes()
+  }, [])
+
+  const fetchNotes = async () => {
+    try {
+      let { data, error } = await supabase.from('notes').select('*');
+      if (error) {
+        throw error;
+      }
+      setNotes(data || [])
+    } catch (error) {
+      console.error('Error fetching notes:', error.message);
+    }
   }
-  const updateNote = (id, newText) => {
-    setNotes((preNote) => preNote.map((note) => (note.id === id ? { ...note, text: newText } : note)))
+  const addNote = async () => {
+    try {
+      const { data, error } = await supabase.from('notes').insert([{ text: 'Click Edit to write your note...' }]).select()
+      if (error) {
+        throw error
+      }
+      setNotes([...notes, ...data])
+    } catch (error) {
+      console.error('Error adding note:', error.message);
+    }
   }
-  const deleteNote = (id) => {
-    setNotes(notes.filter((note) => note.id !== id))
+  const updateNote = async (id, newText) => {
+    try {
+      const { data, error } = await supabase.from('notes').update({ text: newText }).eq('id', id).select()
+      if (error) {
+        throw error
+      }
+      setNotes((preNote) => preNote.map((note) => (note.id === id ? { ...note, text: newText } : note)))
+
+    } catch (error) {
+      console.error('Error updating note:', error.message);
+    }
+
+  }
+  const deleteNote = async (id) => {
+    try {
+      const { error } = await supabase.from('notes').delete().eq('id', id)
+      if (error) {
+        throw error
+      }
+      setNotes(notes.filter((note) => note.id !== id))
+    } catch (error) {
+      console.error('Error deleting note:', error.message);
+    }
   }
   return (
     <>
